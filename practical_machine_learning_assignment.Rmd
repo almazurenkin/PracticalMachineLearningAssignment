@@ -1,0 +1,126 @@
+---
+title: "Weight Lifting Exercises Quality"
+author: "Alexander Mazurenko"
+date: "26 Jul 2015"
+output: html_document
+---
+
+## Introduction
+
+Use of personal **human activity recognition** devices (such as Jawbone Up, Nike FuelBand, and Fitbit)
+became very popular in the last years and made available large collections of data about personal activity.
+
+Researches that analyze the collected data are mainly foused on quantifying *how much*
+of a particular activity is done and distiguish *what type* of acitivty was performed.
+At the same time only few reasearches address a question *how well* the activity was done.
+The latter question is in the focus of the current project.
+
+We'll be using data from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants.
+They were asked to perform dumbbell lifts correctly (Class A records) and then incorrectly in 5 different ways (Classes B-E).
+More details regarding the data and the experiment are available from this website: [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har). 
+
+## Target
+
+The goal of the project is to build a predictive model that based on the available
+data from accelerometers can determine how well (Classes A-E) the dumbbell lifting was performed.
+
+In fact, we'll be building classification model using decision tree learning from available data.
+
+## Loading Data
+
+```{r, cache=TRUE}
+datasetDir <- "./data/HAR Quality Data/"  # String constant with path to the data set directory
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "training.csv", method = "curl")
+train.data <- read.csv("training.csv")
+dim(train.data)
+names(train.data)
+```
+
+Note that 'classe' varible in training data set is our classification; and it's missing in testing set.
+
+```{r, cache=TRUE}
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "testing.csv", method = "curl")
+test.data <- read.csv("testing.csv")
+dim(test.data)
+```
+
+## Preprocessing
+
+1. Looking at the training data with `summary()` and `str()` functions (result is not shown in this report), 
+we notice many variables that equal NA in majority of observations.
+These variables don't carry significant information, hence we'll exclude them from
+the set of predictors we'll use in our model.
+
+2. We also see that some variables have "#DIV/0!" and "" as a value, these should be 
+
+3. Finally, let's choose only variables, that contain "_belt", "_arm", "_dumbbell", "_forearm",   
+We'll exlude "user_name" as unnecessary information of our classifier and include "classe" classifiaction.
+
+```{r}
+train.data[train.data == "#DIV/0!" | train.data == ""] <- NA; 
+
+# Count percentace of NA's per column.
+nap <- c();
+for (i in names(train.data)) {
+        nap[i] <- sum(is.na(train.data[, i])) / length(train.data[, i])
+}
+
+## Only include predictors that contain less than 0.1% of NA's
+train.data <- train.data[nap < 0.001 & grepl("\\_belt|\\_arm|\\_dumbbell|\\_forearm|classe", names(train.data))]
+
+dim(train.data)
+```
+
+PCA is it most useful for linear type models, and as we'll be building a classifier using decision trees learning, we skip it.
+
+## Cross Validation
+
+We'll now perform cross validation random subsampling (without replacement) to split our training set into a training (75%) and a probe (25%) subsets.
+
+```{r}
+library(caret)
+
+it <- createDataPartition(y = train.data$classe, p = 0.75, list = F)
+T <- train.data[it, ]  # training subset
+P <- train.data[-it, ]  # probe subset
+```
+
+## Training Prediction Model
+
+Random forests is recognized as one of best performing prediction algorythms, let's apply it here.
+
+```{r}
+library(randomForest)
+rf_fit <- train(classe ~ ., method = "rf", data = T)
+```
+
+Let's see how the model performs on training and probe subsets of the training set.
+
+```{r}
+T.predictions <- predict(rf_fit, newdata = T)
+confusionMatrix(T.predictions, T$classe)
+
+P.predictions <- predict(rf_fit, newdata = P)
+confusionMatrix(P.predictions, P$classe)
+```
+
+The expected accuracy is 
+Now it's time to veryfy built predictiove model on the test set.
+
+# Predicting Test Data Set
+
+```{r}
+test.data.predictions <- predict(rf_fit, newdata = test.data)
+```
+
+```{r echo=FALSE}
+pml_write_files = function(x) {
+  n = length(x)
+  for(i in 1:n) {
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(test.data.predictions)
+```
