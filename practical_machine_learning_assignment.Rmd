@@ -107,7 +107,7 @@ The model promises to be very good!
 
 Now it's time to verify built predictive model on the test set.
 
-# Predicting Test Data Set
+## Predicting Test Data Set
 
 ```{r}
 test.data.predictions <- predict(rf_fit, newdata = test.data)
