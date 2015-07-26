@@ -1,5 +1,5 @@
 ---
-title: "Weight Lifting Exercises Quality"
+title: "Weight Lifting Exercises Quality Prediction"
 author: "Alexander Mazurenko"
 date: "26 Jul 2015"
 output: html_document
@@ -10,9 +10,9 @@ output: html_document
 Use of personal **human activity recognition** devices (such as Jawbone Up, Nike FuelBand, and Fitbit)
 became very popular in the last years and made available large collections of data about personal activity.
 
-Researches that analyze the collected data are mainly foused on quantifying *how much*
-of a particular activity is done and distiguish *what type* of acitivty was performed.
-At the same time only few reasearches address a question *how well* the activity was done.
+Researches that analyse the collected data are mainly focused on quantifying *how much*
+of a particular activity is done and distinguish *what type* of activity was performed.
+At the same time only few researches address a question *how well* the activity was done.
 The latter question is in the focus of the current project.
 
 We'll be using data from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants.
@@ -29,14 +29,13 @@ In fact, we'll be building classification model using decision tree learning fro
 ## Loading Data
 
 ```{r, cache=TRUE}
-datasetDir <- "./data/HAR Quality Data/"  # String constant with path to the data set directory
 download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "training.csv", method = "curl")
 train.data <- read.csv("training.csv")
 dim(train.data)
 names(train.data)
 ```
 
-Note that 'classe' varible in training data set is our classification; and it's missing in testing set.
+Note that 'classe' variable in training data set is our classification; and it's missing in testing set.
 
 ```{r, cache=TRUE}
 download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "testing.csv", method = "curl")
@@ -51,15 +50,15 @@ we notice many variables that equal NA in majority of observations.
 These variables don't carry significant information, hence we'll exclude them from
 the set of predictors we'll use in our model.
 
-2. We also see that some variables have "#DIV/0!" and "" as a value, these should be 
+2. We also see that some variables have "#DIV/0!" and "" as a value, these should be interpreted as NA.
 
 3. Finally, let's choose only variables, that contain "_belt", "_arm", "_dumbbell", "_forearm",   
-We'll exlude "user_name" as unnecessary information of our classifier and include "classe" classifiaction.
+We'll exclude "user_name" as unnecessary information of our classifier and include "classe" classification.
 
 ```{r}
 train.data[train.data == "#DIV/0!" | train.data == ""] <- NA; 
 
-# Count percentace of NA's per column.
+# Counts percentage of NA's per column.
 nap <- c();
 for (i in names(train.data)) {
         nap[i] <- sum(is.na(train.data[, i])) / length(train.data[, i])
@@ -87,25 +86,26 @@ P <- train.data[-it, ]  # probe subset
 
 ## Training Prediction Model
 
-Random forests is recognized as one of best performing prediction algorythms, let's apply it here.
+Random forests is recognised as one of best performing prediction algorithms, let's apply it here.
 
-```{r}
+```{r cache=TRUE}
 library(randomForest)
 rf_fit <- train(classe ~ ., method = "rf", data = T)
+rf_fit
 ```
 
-Let's see how the model performs on training and probe subsets of the training set.
+Let's see how the model performs on probe subsets of the training set.
 
 ```{r}
-T.predictions <- predict(rf_fit, newdata = T)
-confusionMatrix(T.predictions, T$classe)
-
 P.predictions <- predict(rf_fit, newdata = P)
 confusionMatrix(P.predictions, P$classe)
 ```
 
-The expected accuracy is 
-Now it's time to veryfy built predictiove model on the test set.
+The expected accuracy is greater than 0.99 overall and for all classes.
+Sequentially, expected out of sample error is less than 1% (derived as 1 - Accuracy). 
+The model promises to be very good!
+
+Now it's time to verify built predictive model on the test set.
 
 # Predicting Test Data Set
 
